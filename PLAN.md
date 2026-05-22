@@ -1,389 +1,338 @@
-# Plan de Desarrollo — Map Recommendations App
+# Estado y Plan de Desarrollo — Map Recommendations App
 
-Aplicación fullstack de recomendaciones de lugares en tiempo real con mapa interactivo, chat entre usuarios y motor de recomendaciones personalizadas.
+Aplicación fullstack de recomendaciones de lugares con mapa interactivo, recomendaciones personalizadas, sistema de amigos, chat en tiempo real y compartición de ubicación.
 
 ---
 
-## Stack Tecnológico
+## Estado actual del proyecto
+
+A fecha del estado actual del repositorio, el proyecto **ya no está en fase de arranque**. La base funcional existe tanto en backend como en frontend, y también hay entorno Docker para desarrollo local.
+
+### Resumen ejecutivo
+
+- **Backend**: base ampliamente implementada con FastAPI
+- **Frontend**: base funcional en Vue 3 + TypeScript + Vite
+- **Base de datos**: PostgreSQL con Alembic
+- **Tiempo real**: WebSockets para chat y presencia
+- **Infraestructura local**: Docker Compose disponible
+- **Pendiente principal**: consolidación, documentación, testing y despliegue
+
+---
+
+## Stack tecnológico real
 
 | Capa | Tecnología |
 |------|------------|
-| **Backend** | FastAPI + Python 3.10+ |
+| **Backend** | FastAPI + Python 3.11 |
+| **ORM** | SQLAlchemy 2.x |
+| **Migraciones** | Alembic |
+| **Base de datos** | PostgreSQL 16 |
+| **Auth** | JWT (`python-jose`) + `passlib`/`bcrypt` |
+| **Mapas backend** | Google Maps Python SDK |
+| **Tiempo real** | WebSockets nativos de FastAPI |
+| **Rate limiting** | `slowapi` |
 | **Frontend** | Vue 3 + TypeScript + Vite |
-| **Base de datos** | PostgreSQL (dev y prod) |
-| **ORM** | SQLAlchemy + Alembic |
-| **Mapas** | Google Maps JS API (frontend) + Google Maps Python API (backend) |
-| **Tiempo real** | WebSockets |
-| **Contenedores** | Docker + Docker Compose |
-| **Estilos** | Tailwind CSS |
 | **Estado global** | Pinia |
-| **HTTP Client** | Axios |
+| **Routing** | Vue Router |
+| **HTTP client** | Axios |
+| **UI / estilos** | Tailwind CSS v4 + Headless UI |
+| **Contenedores** | Docker + Docker Compose |
 
 ---
 
-## Estructura del Monorepo
+## Estructura actual del monorepo
 
-```
+```text
 map-recommendations-app/
-├── backend/                    # FastAPI (código actual en raíz → mover aquí)
+├── backend/
+│   ├── alembic/
+│   ├── alembic.ini
 │   ├── app/
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   └── websocket/
+│   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── Dockerfile
-│   └── .env
-├── frontend/                   # Vue 3 + TypeScript (por crear)
+│   └── scripts/
+├── frontend/
 │   ├── src/
-│   ├── package.json
-│   ├── vite.config.ts
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── composables/
+│   │   ├── router/
+│   │   ├── stores/
+│   │   ├── types/
+│   │   ├── utils/
+│   │   └── views/
 │   ├── Dockerfile
-│   └── .env
-├── docker-compose.yml          # Orquestación local
-├── docker-compose.prod.yml     # Orquestación producción
+│   ├── package.json
+│   └── vite.config.ts
+├── docker-compose.yml
+├── README.md
 └── PLAN.md
 ```
 
 ---
 
-## Fase 1 — Backend: Completar API REST
+## Backend — estado real
 
-### 1.1 Endpoints ya implementados
-- [x] `POST /api/v1/auth/register` — Registro de usuario
-- [x] `POST /api/v1/auth/login` — Login con JWT
-- [x] `GET /api/v1/auth/me` — Usuario autenticado
-- [x] `GET /api/v1/users/` — Listar usuarios (paginado)
-- [x] `GET /api/v1/users/{user_id}` — Obtener usuario por ID
+### 1. Autenticación
 
-### 1.2 Maps endpoints (pendiente)
-- [ ] `GET /api/v1/maps/nearby` — Lugares cercanos (lat, lng, radius, type)
-- [ ] `GET /api/v1/maps/place/{place_id}` — Detalle de un lugar
-- [ ] `GET /api/v1/maps/geocode` — Dirección → coordenadas
+**Implementado**
 
-### 1.3 Preferences endpoints (pendiente)
-- [ ] `GET /api/v1/preferences/` — Listar preferencias del usuario
-- [ ] `POST /api/v1/preferences/` — Añadir preferencia
-- [ ] `PUT /api/v1/preferences/{id}` — Actualizar preferencia
-- [ ] `DELETE /api/v1/preferences/{id}` — Eliminar preferencia
+- [x] `POST /api/v1/auth/register`
+- [x] `POST /api/v1/auth/login`
+- [x] `GET /api/v1/auth/me`
+- [x] `POST /api/v1/auth/change-password`
+- [x] `POST /api/v1/auth/forgot-password`
+- [x] `POST /api/v1/auth/reset-password`
+- [x] JWT para autenticación
+- [x] Rate limiting en endpoints sensibles
 
-### 1.4 Locations endpoints (pendiente)
-- [ ] `POST /api/v1/locations/` — Registrar ubicación del usuario
-- [ ] `GET /api/v1/locations/me` — Historial de ubicaciones propias
-- [ ] `GET /api/v1/locations/latest` — Última ubicación del usuario
+### 2. Usuarios
 
-### 1.5 Recommendations engine (pendiente)
-- [ ] `GET /api/v1/recommendations/` — Recomendaciones personalizadas
-  - Lógica: cruzar preferencias del usuario con lugares cercanos (Google Maps)
-  - Ordenar por rating, distancia y match con categorías preferidas
-  - Filtros opcionales: radio, categoría, precio
+**Implementado**
 
-### 1.6 Messages / Chat REST (pendiente)
-- [ ] `GET /api/v1/messages/{user_id}` — Historial de mensajes con un usuario
-- [ ] `POST /api/v1/messages/` — Enviar mensaje (fallback REST)
-- [ ] `PATCH /api/v1/messages/{id}/read` — Marcar como leído
+- [x] `GET /api/v1/users/`
+- [x] `GET /api/v1/users/{user_id}`
+- [x] `PATCH /api/v1/users/me`
+- [x] `DELETE /api/v1/users/me`
 
-### 1.7 WebSocket Chat (pendiente)
-- [ ] `WS /ws/chat/{room_id}` — Conexión WebSocket autenticada
-  - Autenticación por query param `?token=<jwt>`
-  - Broadcast a sala o usuario específico
-  - Persistencia de mensajes en BD
+### 3. Mapas
 
-### 1.8 Mejoras de infraestructura backend (pendiente)
-- [ ] Migrar de SQLite a PostgreSQL (apuntando al contenedor Docker local)
-- [ ] Añadir Alembic para control de migraciones de BD
-- [ ] Paginación consistente en todos los endpoints de lista
-- [ ] Rate limiting básico
-- [ ] Logging estructurado
+**Implementado**
 
----
+- [x] `GET /api/v1/maps/nearby`
+- [x] `GET /api/v1/maps/place/{place_id}`
+- [x] `GET /api/v1/maps/geocode`
 
-## Fase 2 — Frontend: Vue 3 + TypeScript
+### 4. Preferencias
 
-### 2.1 Setup inicial
-- [ ] Crear proyecto con Vite: `npm create vue@latest frontend`
-  - TypeScript: sí
-  - Vue Router: sí
-  - Pinia: sí
-  - ESLint + Prettier: sí
-- [ ] Instalar dependencias:
-  - `axios` — HTTP client
-  - `@googlemaps/js-api-loader` — Google Maps JS
-  - `tailwindcss` + `@headlessui/vue` — UI
-  - `@vueuse/core` — Composables de utilidad
-  - WebSocket nativo — Chat en tiempo real
+**Implementado**
 
-### 2.2 Estructura del frontend
+- [x] `GET /api/v1/preferences/`
+- [x] `POST /api/v1/preferences/`
+- [x] `PUT /api/v1/preferences/{preference_id}`
+- [x] `DELETE /api/v1/preferences/{preference_id}`
 
-```
-frontend/src/
-├── api/                    # Llamadas HTTP a la API
-│   ├── auth.ts
-│   ├── maps.ts
-│   ├── preferences.ts
-│   ├── recommendations.ts
-│   └── messages.ts
-├── components/
-│   ├── map/
-│   │   ├── MapContainer.vue       # Google Maps canvas
-│   │   ├── PlaceMarker.vue        # Marcador de lugar
-│   │   └── PlaceInfoCard.vue      # Card de detalle al click
-│   ├── auth/
-│   │   ├── LoginForm.vue
-│   │   └── RegisterForm.vue
-│   ├── recommendations/
-│   │   ├── RecommendationList.vue
-│   │   └── RecommendationCard.vue
-│   ├── preferences/
-│   │   └── PreferencesManager.vue
-│   ├── chat/
-│   │   ├── ChatWindow.vue
-│   │   ├── MessageBubble.vue
-│   │   └── UserList.vue
-│   └── ui/                        # Componentes genéricos (Button, Input, etc.)
-├── composables/
-│   ├── useAuth.ts
-│   ├── useMap.ts
-│   ├── useGeolocation.ts
-│   ├── useRecommendations.ts
-│   └── useChat.ts
-├── stores/
-│   ├── auth.ts           # Usuario autenticado, token
-│   ├── map.ts            # Estado del mapa, lugares
-│   ├── recommendations.ts
-│   └── chat.ts
-├── views/
-│   ├── HomeView.vue       # Mapa principal + recomendaciones
-│   ├── LoginView.vue
-│   ├── RegisterView.vue
-│   ├── ProfileView.vue    # Preferencias del usuario
-│   └── ChatView.vue
-├── router/
-│   └── index.ts
-└── types/
-    ├── api.ts             # Tipos de respuestas de la API
-    └── maps.ts            # Tipos de Google Maps
-```
+### 5. Ubicaciones
 
-### 2.3 Vistas y funcionalidades
+**Implementado**
 
-#### HomeView (Vista principal)
-- Mapa de Google Maps a pantalla completa
-- Botón "Usar mi ubicación" → geolocalización del navegador
-- Panel lateral con lista de recomendaciones
-- Marcadores en el mapa por cada lugar recomendado
-- Click en marcador → PlaceInfoCard con detalle
-- Filtros: categoría, radio, precio
+- [x] `POST /api/v1/locations/`
+- [x] `GET /api/v1/locations/me`
+- [x] `GET /api/v1/locations/latest`
 
-#### Auth (Login / Register)
-- Formularios de login y registro
-- Guardar JWT en localStorage via Pinia
-- Guards de rutas (solo acceso autenticado al mapa)
-- Redirect tras login → HomeView
+### 6. Recomendaciones
 
-#### ProfileView
-- Ver y editar preferencias (categorías de interés)
-- Historial de ubicaciones visitadas
-- Configuración de cuenta básica
+**Implementado**
 
-#### ChatView
-- Lista de usuarios disponibles
-- Ventana de chat con un usuario
-- Conexión WebSocket en tiempo real
-- Compartir lugares desde el mapa al chat
+- [x] `GET /api/v1/recommendations/`
+- [x] Motor básico cruzando preferencias del usuario con lugares cercanos
+- [x] Deduplcado de resultados
+- [x] Ordenación básica por coincidencia y rating
 
-### 2.4 Autenticación en el frontend
-- Interceptor Axios: adjuntar `Authorization: Bearer <token>` en todas las peticiones
-- Interceptor de respuesta: si 401 → limpiar sesión y redirigir a login
-- Store de auth: `user`, `token`, `isAuthenticated`, `login()`, `logout()`
+**Pendiente de mejora**
+
+- [ ] Afinar ranking (distancia, popularidad, peso por categoría)
+- [ ] Filtros más ricos de precio/tipo/contexto
+- [ ] Caché de resultados externos
+
+### 7. Mensajes / chat REST
+
+**Implementado**
+
+- [x] `GET /api/v1/messages/{user_id}`
+- [x] `POST /api/v1/messages/`
+- [x] `PATCH /api/v1/messages/{message_id}/read`
+- [x] `DELETE /api/v1/messages/{user_id}`
+
+### 8. Sistema de amigos
+
+**Implementado**
+
+- [x] Crear invitaciones
+- [x] Listar invitaciones
+- [x] Revocar invitaciones
+- [x] Preview de invitación por código
+- [x] Aceptar invitación por token
+- [x] Aceptar invitación por código
+- [x] Listar amigos
+- [x] Eliminar amistad
+
+### 9. WebSockets / tiempo real
+
+**Implementado**
+
+- [x] Chat WebSocket
+- [x] Presencia / ubicación en tiempo real
+- [x] Managers de conexiones activas
+
+**Pendiente / revisar**
+
+- [ ] Documentar bien el protocolo de mensajes WS
+- [ ] Endurecer reconexión y manejo de errores
+- [ ] Añadir tests de integración WS
+
+### 10. Infraestructura backend
+
+**Implementado**
+
+- [x] PostgreSQL como base de datos principal
+- [x] Alembic para migraciones
+- [x] Dockerfile de backend
+- [x] `docker-compose.yml` funcional
+- [x] `health` endpoint
+- [x] CORS configurable por entorno
+- [x] Rate limiting básico
+
+**Pendiente**
+
+- [ ] Logging más estructurado
+- [ ] Tests automáticos
+- [ ] `.env.example`
+- [ ] Validación más estricta de configuración
 
 ---
 
-## Fase 3 — Docker: Entorno Local
+## Frontend — estado real
 
-### 3.1 Dockerfile del backend
+### Base técnica
 
-```dockerfile
-# backend/Dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-```
+**Implementado**
 
-### 3.2 Dockerfile del frontend
+- [x] Vue 3 + TypeScript + Vite
+- [x] Vue Router
+- [x] Pinia
+- [x] Axios
+- [x] Tailwind CSS v4
+- [x] Headless UI
+- [x] Estructura por `api`, `components`, `composables`, `stores`, `views`, `types`, `utils`
 
-```dockerfile
-# frontend/Dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json .
-RUN npm install
-COPY . .
-EXPOSE 5173
-CMD ["npm", "run", "dev", "--", "--host"]
-```
+### Vistas existentes
 
-### 3.3 docker-compose.yml (desarrollo local)
+**Implementado**
 
-```yaml
-services:
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/mapapp
-      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
-      - SECRET_KEY=${SECRET_KEY}
-    depends_on:
-      db:
-        condition: service_healthy
+- [x] `HomeView.vue`
+- [x] `LoginView.vue`
+- [x] `RegisterView.vue`
+- [x] `ProfileView.vue`
+- [x] `ChatView.vue`
+- [x] `FriendsView.vue`
+- [x] `ForgotPasswordView.vue`
+- [x] `ResetPasswordView.vue`
+- [x] `InviteView.vue`
 
-  frontend:
-    build: ./frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_URL=http://localhost:8000
-      - VITE_GOOGLE_MAPS_KEY=${GOOGLE_MAPS_API_KEY}
-    depends_on:
-      - backend
+### Funcionalidad funcional o muy avanzada
 
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mapapp
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+- [x] Autenticación con JWT
+- [x] Navegación entre vistas
+- [x] Integración con Google Maps en frontend
+- [x] Perfil de usuario
+- [x] Chat
+- [x] Gestión de amigos
+- [x] Flujo de recuperación de contraseña
 
-volumes:
-  postgres_data:
-```
+### Pendiente de consolidación frontend
 
-### 3.4 Tareas Docker pendientes
-- [ ] Reorganizar monorepo: mover código actual al subdirectorio `backend/`
-- [ ] Crear `backend/Dockerfile`
-- [ ] Crear `frontend/Dockerfile`
-- [ ] Crear `docker-compose.yml` en raíz
-- [ ] Crear `.env.example` con todas las variables necesarias
-- [ ] Migrar backend de SQLite → PostgreSQL (apuntando al contenedor `db`)
-- [ ] Añadir Alembic y ejecutar migración inicial
-- [ ] Añadir `Adminer` como servicio opcional para inspeccionar la BD en local
+- [ ] Mejorar consistencia visual global
+- [ ] Mejorar UX de errores y estados de carga
+- [ ] Añadir tests de componentes / E2E
+- [ ] Documentar variables de entorno del frontend
+- [ ] Revisar accesibilidad básica
 
 ---
 
-## Fase 4 — Despliegue (Producción)
+## Docker y desarrollo local
 
-### 4.1 Infraestructura objetivo
-| Servicio | Plataforma sugerida |
-|----------|---------------------|
-| Backend API | Railway / Render / VPS (DigitalOcean) |
-| Frontend | Vercel / Netlify / Nginx en VPS |
-| Base de datos | Railway PostgreSQL / Supabase / RDS |
+### Estado
 
-### 4.2 Dockerfile.prod del frontend (multistage)
+**Implementado**
 
-```dockerfile
-# Build stage
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json .
-RUN npm ci
-COPY . .
-RUN npm run build
+- [x] `backend/Dockerfile`
+- [x] `frontend/Dockerfile`
+- [x] `docker-compose.yml`
+- [x] Servicio `db` con PostgreSQL
+- [x] Montajes para desarrollo local
 
-# Serve stage
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-```
+### Pendiente
 
-### 4.3 nginx.conf (reverse proxy en prod)
-
-```nginx
-server {
-  listen 80;
-
-  location /api {
-    proxy_pass http://backend:8000;
-  }
-
-  location /ws {
-    proxy_pass http://backend:8000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-  }
-
-  location / {
-    root /usr/share/nginx/html;
-    try_files $uri $uri/ /index.html;
-  }
-}
-```
-
-### 4.4 Variables de entorno en producción
-- `DATABASE_URL` — PostgreSQL connection string
-- `SECRET_KEY` — clave secreta JWT (generada con `openssl rand -hex 32`)
-- `GOOGLE_MAPS_API_KEY` — restringida por dominio en Google Cloud Console
-- `VITE_API_URL` — URL pública del backend
-- `VITE_GOOGLE_MAPS_KEY` — clave pública de Maps JS API
-
-### 4.5 Tareas de despliegue
-- [ ] Elegir plataforma de hosting
-- [ ] Configurar dominio y HTTPS (Let's Encrypt / Certbot)
-- [ ] Crear `Dockerfile.prod` para frontend (nginx multistage)
-- [ ] Crear `nginx.conf` con reverse proxy y soporte WebSocket
-- [ ] Configurar CI/CD (GitHub Actions: test → build → deploy)
-- [ ] Configurar secrets en el repositorio
+- [ ] `.env.example` en raíz y/o por subproyecto
+- [ ] Documentación mínima de arranque en Linux/Debian
+- [ ] Posible perfil opcional para herramientas de inspección BD
 
 ---
 
-## Orden de Implementación Recomendado
+## Despliegue y operaciones
 
-```
-[AHORA]     Fase 3.4 → Docker local + migración a PostgreSQL + Alembic
-            Reorganizar monorepo (mover código a backend/)
+### Aún pendiente
 
-[SIGUIENTE] Fase 1.2 → Maps endpoints
-            Fase 1.3 → Preferences endpoints
-            Fase 1.4 → Locations endpoints
-            Fase 1.5 → Recommendations engine
+- [ ] Estrategia de despliegue documentada
+- [ ] Configuración CI/CD
+- [ ] Secrets documentados
+- [ ] Reverse proxy de producción
+- [ ] HTTPS y dominio
+- [ ] Observabilidad mínima
 
-[LUEGO]     Fase 2.1 → Setup frontend Vue
-            Fase 2.2–2.4 → Implementar vistas y composables
+---
 
-[FINAL DEV] Fase 1.7 → WebSocket chat
-            Fase 2.3 (ChatView) → Chat en frontend
+## Orden de trabajo recomendado desde este punto
 
-[DEPLOY]    Fase 4 → Despliegue en producción
+```text
+[AHORA]     Documentación y consolidación del entorno local
+            - actualizar PLAN.md
+            - añadir INSTALL.org
+            - añadir .env.example
+            - revisar README para que coincida con el repo real
+
+[SIGUIENTE] Calidad interna
+            - tests backend
+            - tests frontend
+            - validación de errores y contratos API
+            - endurecer WebSockets
+
+[LUEGO]     Mejora funcional
+            - refinar recomendaciones
+            - mejorar UX del mapa/chat/amigos
+            - optimizar presencia en tiempo real
+
+[DESPUÉS]   Operación y despliegue
+            - CI/CD
+            - Docker/compose de producción o despliegue equivalente
+            - observabilidad y hardening
 ```
 
 ---
 
-## Estado Global del Proyecto
+## Estado global resumido
 
-| Módulo | Backend | Frontend | Docker | Deploy |
-|--------|---------|----------|--------|--------|
-| Autenticación | ✅ Completo | ⬜ Pendiente | ⬜ | ⬜ |
-| Usuarios | ✅ Completo | ⬜ Pendiente | ⬜ | ⬜ |
-| Maps API | 🔄 En progreso | ⬜ Pendiente | ⬜ | ⬜ |
-| Preferencias | 🔄 En progreso | ⬜ Pendiente | ⬜ | ⬜ |
-| Ubicaciones | ⬜ Pendiente | ⬜ Pendiente | ⬜ | ⬜ |
-| Recomendaciones | ⬜ Pendiente | ⬜ Pendiente | ⬜ | ⬜ |
-| Chat / WS | ⬜ Pendiente | ⬜ Pendiente | ⬜ | ⬜ |
-| Docker local | ⬜ Pendiente | — | ⬜ | — |
-| Despliegue | — | — | — | ⬜ |
+| Módulo | Estado |
+|--------|--------|
+| Autenticación | ✅ Implementado |
+| Usuarios | ✅ Implementado |
+| Maps API | ✅ Implementado |
+| Preferencias | ✅ Implementado |
+| Ubicaciones | ✅ Implementado |
+| Recomendaciones | ✅ Implementado, mejorable |
+| Mensajes REST | ✅ Implementado |
+| Amigos / invitaciones | ✅ Implementado |
+| WebSockets chat/presencia | ✅ Implementado, mejorable |
+| Frontend base | ✅ Implementado |
+| Docker local | ✅ Implementado |
+| Tests | ⬜ Pendiente o no consolidado |
+| CI/CD | ⬜ Pendiente |
+| Deploy producción | ⬜ Pendiente |
+
+---
+
+## Nota de mantenimiento
+
+Este documento debe entenderse como **estado + roadmap corto**, no como plan inicial histórico.
+
+Si el proyecto sigue creciendo, conviene separar en:
+
+- `STATUS.md` → estado real actual
+- `PLAN.md` → próximos pasos
