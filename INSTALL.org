@@ -1,0 +1,175 @@
+#+title: Instalación en Debian 13
+#+author: DAW2-Quevedo
+#+options: toc:2
+
+* Objetivo
+
+Levantar =map-recommendations-app= en Debian 13 de la forma más simple posible.
+
+La vía recomendada es *Docker Compose*, porque el repositorio ya incluye backend, frontend y PostgreSQL orquestados.
+
+* Requisitos
+
+Instala:
+
+- =git=
+- =docker.io=
+- =docker-compose-v2=
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y git docker.io docker-compose-v2
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"
+newgrp docker
+#+end_src
+
+Comprueba:
+
+#+begin_src bash
+docker --version
+docker compose version
+#+end_src
+
+* Clonar el repositorio
+
+#+begin_src bash
+git clone https://github.com/DAW2-Quevedo/map-recommendations-app.git
+cd map-recommendations-app
+#+end_src
+
+* Crear variables de entorno
+
+Crea =.env= en la raíz del proyecto:
+
+#+begin_src bash
+cat > .env <<'EOF'
+GOOGLE_MAPS_API_KEY=pon_aqui_tu_google_maps_api_key
+SECRET_KEY=pon_aqui_una_clave_larga_y_aleatoria
+RESEND_API_KEY=pon_aqui_tu_resend_api_key
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+FRONTEND_URL=http://localhost:5173
+EOF
+#+end_src
+
+Para generar una clave secreta:
+
+#+begin_src bash
+openssl rand -hex 32
+#+end_src
+
+* Arranque
+
+#+begin_src bash
+docker compose up --build
+#+end_src
+
+* Servicios disponibles
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
+- PostgreSQL: localhost:5432
+
+* Parada
+
+#+begin_src bash
+docker compose down
+#+end_src
+
+Para borrar también los datos de PostgreSQL:
+
+#+begin_src bash
+docker compose down -v
+#+end_src
+
+* Migraciones
+
+Si hiciera falta aplicar migraciones manualmente:
+
+#+begin_src bash
+docker compose exec backend alembic upgrade head
+#+end_src
+
+* Comprobación rápida
+
+#+begin_src bash
+curl http://localhost:8000/health
+#+end_src
+
+Salida esperada aproximada:
+
+#+begin_example
+{"status":"healthy","database":"connected"}
+#+end_example
+
+* Desarrollo sin Docker
+
+**Backend**
+
+Instala dependencias del sistema:
+
+#+begin_src bash
+sudo apt install -y python3 python3-venv python3-pip libpq-dev gcc
+#+end_src
+
+Crea entorno virtual e instala dependencias:
+
+#+begin_src bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+#+end_src
+
+Exporta variables y arranca:
+
+#+begin_src bash
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mapapp
+export GOOGLE_MAPS_API_KEY=pon_aqui_tu_google_maps_api_key
+export SECRET_KEY=pon_aqui_tu_secret_key
+export RESEND_API_KEY=pon_aqui_tu_resend_api_key
+export CORS_ORIGINS=http://localhost:5173
+export FRONTEND_URL=http://localhost:5173
+uvicorn app.main:app --reload
+#+end_src
+
+**Frontend**
+
+El proyecto requiere Node moderno.
+
+Luego:
+
+#+begin_src bash
+cd frontend
+npm install
+npm run dev
+#+end_src
+
+* Solución de problemas
+
+**Docker sin permisos**
+
+#+begin_src bash
+newgrp docker
+#+end_src
+
+o cerrar sesión y volver a entrar.
+
+**Puertos ocupados**
+
+Libera antes =5173=, =8000= y =5432= si ya están en uso.
+
+**APIs externas**
+
+Sin una clave válida de Google Maps, las funcionalidades de mapas y recomendaciones no funcionarán correctamente.
+
+* Modo KISS recomendado
+
+En Debian 13, el camino simple es:
+
+1. instalar Docker
+2. crear =.env=
+3. ejecutar =docker compose up --build=
+
+No hace falta instalar manualmente Python, Node o PostgreSQL si usas Docker.
